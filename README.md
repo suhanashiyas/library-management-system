@@ -1,91 +1,143 @@
-# LibraryHub — Library Management System
+# 📚 LibraryHub — Library Management System
 
-A full-stack web application for managing a library's book catalog, memberships, and borrowing workflow. It replaces manual/spreadsheet-based tracking with a single system where members can browse and borrow books online, and librarians (admins) can manage the catalog, users, and loans from a dedicated dashboard.
+A modern full-stack Library Management System built with the MERN stack. The application provides separate experiences for users and administrators, with secure authentication, book management, borrowing and return workflows, dashboards, and role-based access control.
 
-## 1. Project Overview
+## 📖 Project Overview
 
-LibraryHub is a MERN-style application (MongoDB, Express, React, Node.js) built as a two-part project:
+LibraryHub replaces manual/spreadsheet-based library tracking with a self-service web application. It consists of two parts:
 
-- **`backend/`** — a REST API (Node.js + Express + MongoDB/Mongoose) that handles authentication, book records, borrowing transactions, and user administration.
+- **`backend/`** — a REST API (Node.js + Express + MongoDB/Mongoose) handling authentication, book records, borrowing transactions, and user administration.
 - **`front/`** — a React (Vite) single-page application that consumes the API and provides separate experiences for regular users and administrators.
 
-The core problem it solves: giving a library staff/member workflow — cataloging books, tracking how many copies are available, and recording who has borrowed and returned what — a simple, self-service web interface instead of manual record-keeping.
+Members can browse the catalog, borrow and return books, and track their own borrowing history, while admins manage the book catalog, users, and every borrowing record from a dedicated dashboard.
 
-## 2. Features
+## 🚀 Features
 
-### User
-- Register and log in with an email/password account
-- Browse the full book catalog
-- Search books by title, author, category, or ISBN, and filter by category
-- Borrow an available book (one active borrow per book per user)
-- Return a borrowed book
-- View personal borrowing history (active and returned)
-- Personal dashboard showing total titles in the library, active borrows, returned borrows, and recent activity
+### 👤 User Features
 
-### Admin
-- Admin authentication (same login flow, elevated by role)
-- Admin dashboard with library-wide statistics (titles, copies, availability, users, active/returned borrowings) and recent activity feeds
-- Full book CRUD — create, view, update, and delete books, with quantity/availability tracking
-- User management — view all users with their borrowing activity, change a user's role, and delete a user (with safeguards, see below)
-- Borrowing management — view every borrow record in the system, with search and status filtering
-- Search/filter across the book catalog, user list, and borrow records
-- Recent activity view — latest borrows, latest books added, latest registered users
+- User registration and login
+- JWT-based authentication
+- Secure protected routes
+- Browse available books
+- Search books by title, author, category, or ISBN
+- Filter books by category
+- Borrow available books
+- Return borrowed books
+- View personal borrowing history
+- Personal dashboard with activity stats
+- Responsive and user-friendly interface
+
+### 🛡️ Admin Features
+
+- Secure admin authentication
+- Admin dashboard with library-wide statistics and recent activity
+- Add new books
+- Edit book details
+- Delete books
+- Manage book quantities and availability
+- View registered users with borrowing activity
+- Manage users (role changes, deletion)
+- View all borrowing records
+- Search and filter users and borrowing records
+- Monitor returned and currently borrowed books
 
 Only features present in the current codebase are listed above.
 
-## 3. User Roles & Authorization
+## 🧑‍🤝‍🧑 User & Admin Roles
 
-The system supports two roles, stored on the `User` model: **`user`** (default) and **`admin`**.
+The system supports two roles, stored on the `User` model:
 
-- **JWT Authentication** — On login, the API issues a signed JWT (`jsonwebtoken`) containing the user's `id` and `role`, valid for 1 day. The frontend stores this token and attaches it as a `Bearer` token on every API request.
-- **Role-based authorization** — The token's `role` claim determines access to admin-only features; regular users cannot reach admin functionality even if they call the API directly.
-- **Protected routes (frontend)** — `ProtectedRoute` redirects unauthenticated users to `/login`. `AdminRoute` additionally redirects non-admins away from admin pages (e.g. user management, admin dashboard, borrowing management).
-- **Backend authorization** — Enforced independently of the frontend via two Express middlewares:
-  - `authMiddleware` — verifies the JWT and rejects missing/invalid/expired tokens.
-  - `adminMiddleware` — runs after `authMiddleware` and rejects any request where `role !== "admin"`.
+- **`user`** (default) — can browse books, borrow/return, and view their own dashboard and history.
+- **`admin`** — has all user capabilities plus full access to book management, user management, and system-wide borrowing/dashboard views.
 
-  Every book-write, user-management, admin-borrow, and admin-dashboard route is protected by both middlewares, so authorization is enforced server-side, not just hidden in the UI.
+Role is assigned at the database level (new registrations default to `user`); admins can promote or demote other users via the User Management screen. Admins cannot change their own role or delete their own account, preventing accidental lockout.
 
-## 4. Tech Stack
+Access is enforced in two places:
+- **Frontend** — `ProtectedRoute` requires a logged-in user; `AdminRoute` additionally requires the `admin` role, redirecting non-admins away from admin pages.
+- **Backend** — every admin-only endpoint independently enforces the role check server-side (see below), so the restriction can't be bypassed by calling the API directly.
 
-**Frontend**
-- React 19
+## 🔐 Authentication & Authorization
+
+The application uses JWT (JSON Web Tokens) for authentication.
+
+- Passwords are securely hashed using **bcrypt** before being stored, and are never persisted in plain text.
+- On login, the API issues a signed JWT (containing the user's `id` and `role`) that expires after 1 day.
+- The frontend stores the token and attaches it as a `Bearer` token on every API request.
+- **`authMiddleware`** verifies the JWT on protected routes and rejects missing, malformed, or expired/invalid tokens.
+- **`adminMiddleware`** runs after `authMiddleware` and rejects any request where the user's role isn't `admin`.
+- User and admin access are separated using role-based access control, enforced independently on both frontend and backend.
+- Additional hardening: `helmet` security headers, `cors` restricted to the configured frontend origin, and rate limiting on `/api/auth` (register/login) to slow brute-force attempts.
+
+## 📗 Book Management
+
+Books are stored with title, author, ISBN, category, optional description/publisher/publishedYear/coverImage, total `quantity`, and `availableQuantity` (copies currently available to borrow).
+
+- **Create** (admin only) — requires title, author, ISBN, and category; ISBN must be unique across the catalog.
+- **Read** — any authenticated user can list all books or view a single book's details.
+- **Update** (admin only) — fields are updated only if provided; if the total quantity is reduced, it cannot drop below the number of copies currently borrowed.
+- **Delete** (admin only) — blocked if any copies of the book are currently borrowed, preventing orphaned borrow records.
+
+## 🔄 Borrowing & Return System
+
+The borrowing workflow manages book availability automatically.
+
+When a user borrows a book:
+
+1. The system checks whether the book exists.
+2. It checks the user doesn't already have an active (unreturned) borrow of that same book.
+3. It checks whether copies are available (`availableQuantity > 0`).
+4. A borrowing record is created.
+5. Available quantity is decreased by 1.
+
+When a user returns a book:
+
+1. The borrowing record is verified, and confirmed to belong to the requesting user.
+2. Returning an already-returned record is rejected.
+3. The status is changed to `returned` and the return date is recorded.
+4. Available quantity is increased by 1 (capped at the book's total quantity).
+
+Users can view their own full borrowing history at any time; admins can view every borrowing record system-wide, with search and status filtering.
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- React.js (v19)
 - Vite
 - React Router (`react-router-dom`)
-- Tailwind CSS (via `@tailwindcss/vite`)
+- Tailwind CSS
+- JavaScript
+- Fetch API
 
-**Backend**
+### Backend
+
 - Node.js
-- Express 5
+- Express.js (v5)
 - MongoDB
 - Mongoose
-- JSON Web Tokens (`jsonwebtoken`)
-- `bcrypt` for password hashing
-- `helmet` for security headers
-- `express-rate-limit` for login/register rate limiting
-- `cors` for cross-origin restriction to the configured frontend origin
+- JWT (`jsonwebtoken`)
+- **bcrypt** (password hashing)
+- `dotenv`
+- `helmet` (security headers)
+- `express-rate-limit` (auth rate limiting)
+- `cors`
 
-## 5. Architecture
+### Development Tools
 
-```
-React (Vite SPA)  --HTTP/JSON-->  Express REST API  --Mongoose-->  MongoDB
-   front/src                        backend/src                 (Atlas / local)
-```
+- Git
+- GitHub
+- VS Code
+- MongoDB Atlas
 
-- The React app never talks to MongoDB directly — every read/write goes through the Express API.
-- Requests are authenticated with a `Bearer <JWT>` header, attached from `localStorage` on the client.
-- Express applies security middleware (`helmet`, `cors` restricted to `CLIENT_URL`, rate limiting on `/api/auth`) before routing to controllers.
-- Controllers use Mongoose models (`User`, `Book`, `Borrow`) to read/write MongoDB, enforcing business rules (e.g. availability counts, duplicate-borrow checks) at the controller level.
+## 📁 Project Structure
 
-## 6. Project Structure
-
-```
+```text
 library-management-system/
+│
 ├── backend/
 │   ├── src/
-│   │   ├── app.js                 # Express app setup, middleware, route mounting
 │   │   ├── config/
-│   │   │   └── db.js              # MongoDB connection
+│   │   │   └── db.js                  # MongoDB connection
 │   │   ├── controllers/
 │   │   │   ├── authcontroller.js
 │   │   │   ├── bookController.js
@@ -93,8 +145,8 @@ library-management-system/
 │   │   │   ├── dashboardController.js
 │   │   │   └── userController.js
 │   │   ├── middleware/
-│   │   │   ├── authMiddleware.js  # JWT verification
-│   │   │   └── adminMiddleware.js # Role check
+│   │   │   ├── authMiddleware.js      # JWT verification
+│   │   │   └── adminMiddleware.js     # Role check
 │   │   ├── models/
 │   │   │   ├── user.js
 │   │   │   ├── book.js
@@ -105,75 +157,33 @@ library-management-system/
 │   │       ├── borrowRoutes.js
 │   │       ├── dashboardRoutes.js
 │   │       └── userRoutes.js
-│   ├── server.js                  # Entry point (loads env, connects DB, starts server)
-│   ├── createAdmin.js             # One-off script to seed an admin account
+│   │
+│   ├── createAdmin.js                 # One-off script to seed an admin account
+│   ├── server.js                      # Entry point
 │   ├── package.json
-│   └── .env                       # Local environment variables (not committed)
+│   └── .gitignore
 │
 ├── front/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Layout.jsx
-│   │   │   ├── ProtectedRoute.jsx
-│   │   │   ├── AdminRoute.jsx
-│   │   │   └── Skeleton.jsx
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx    # Auth state, token/user storage
-│   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Books.jsx
-│   │   │   ├── MyBorrows.jsx
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── AdminUsers.jsx
-│   │   │   └── AdminBorrows.jsx
-│   │   ├── utils/
-│   │   │   └── formatDate.js
-│   │   ├── config.js               # API base URL
-│   │   ├── App.jsx                 # Route definitions
-│   │   └── main.jsx
 │   ├── public/
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
+│   ├── src/
+│   │   ├── components/                # Layout, ProtectedRoute, AdminRoute, Skeleton
+│   │   ├── context/                   # AuthContext (auth state)
+│   │   ├── pages/                     # Login, Register, Dashboard, Books, MyBorrows,
+│   │   │                              #   AdminDashboard, AdminUsers, AdminBorrows
+│   │   ├── utils/                     # formatDate
+│   │   ├── config.js                  # API base URL
+│   │   └── App.jsx                    # Route definitions
+│   │
+│   ├── package.json
+│   └── vite.config.js
 │
+├── .gitignore
 └── README.md
 ```
 
-## 7. Authentication & Security
+## 🔌 API Overview
 
-- **Password hashing** — Passwords are hashed with `bcrypt` (10 salt rounds) before being stored; the raw password is never persisted. The `password` field is excluded from queries by default (`select: false`) and only pulled in explicitly during login.
-- **JWT** — Issued on login (`jwt.sign`) with a 1-day expiry, containing only `id` and `role`. Verified on every protected request via `authMiddleware`.
-- **Authentication middleware** (`authMiddleware.js`) — Requires a valid `Authorization: Bearer <token>` header on protected routes; rejects missing, malformed, or expired/invalid tokens with `401`.
-- **Admin middleware** (`adminMiddleware.js`) — Runs after authentication and requires `role === "admin"`; otherwise returns `403`.
-- **Protected endpoints** — All book-write, all user-management, admin-borrow, and admin-dashboard endpoints require both middlewares. Book reads, borrowing, and the user's own dashboard/history require authentication only.
-- **Environment variables** — Secrets (`MONGO_URI`, `JWT_SECRET`) and configuration (`PORT`, `CLIENT_URL`) are loaded from `backend/.env` via `dotenv` and are never hardcoded in source.
-- **Input validation** — Controllers validate required fields, types, string trimming, email format, minimum password length, and numeric/quantity constraints before touching the database (e.g. `register`, `createBook`, `updateBook`).
-- **Authorization safeguards** — Beyond role checks: users can only return their own borrow records; admins cannot change their own role or delete their own account; books/users with active borrows cannot be deleted.
-- **Other hardening** — `helmet` sets security-related HTTP headers; `cors` restricts API access to the configured `CLIENT_URL`; `express-rate-limit` caps `/api/auth` (register/login) to 20 requests per 15 minutes per client to slow brute-force attempts.
-
-## 8. Book Management
-
-Books are stored with title, author, ISBN (unique), category, optional description/publisher/publishedYear/coverImage, `quantity` (total copies), and `availableQuantity` (copies currently available to borrow).
-
-- **Create** — Admin-only. Requires title, author, ISBN, and category; ISBN must be unique. `availableQuantity` is initialized equal to `quantity`.
-- **Read** — Any authenticated user can list all books or fetch a single book by ID.
-- **Update** — Admin-only. Fields are updated only if provided. If `quantity` is reduced, it cannot drop below the number of copies currently borrowed (`quantity - availableQuantity`); `availableQuantity` is recalculated accordingly.
-- **Delete** — Admin-only. Blocked if any copies of the book are currently borrowed.
-
-## 9. Borrowing System
-
-- **Borrowing** — An authenticated user can borrow a book if: the book exists, they don't already have an active (unreturned) borrow of that same book, and `availableQuantity > 0`. On success, a `Borrow` record is created and the book's `availableQuantity` is decremented.
-- **Returning** — The user who created the borrow record (verified by comparing `borrow.user` to the requester) marks it as returned; returning an already-returned borrow is rejected. The book's `availableQuantity` is incremented, capped at its total `quantity`.
-- **Borrow history** — Users can fetch their own full borrow history (`GET /api/borrows/my`), with book details populated. Admins can fetch every borrow record system-wide (`GET /api/borrows/admin`), with user and book details populated.
-- **Available quantity changes** — `availableQuantity` is the single live counter used to gate borrowing and display availability; it moves down on borrow and up on return, and is also reconciled whenever an admin edits a book's total `quantity`.
-- **Duplicate active borrowing prevention** — A user cannot hold two simultaneous active borrows of the same book; they must return it before borrowing it again.
-- **Authorization checks** — Borrowing and returning require authentication; a user can only return borrows that belong to them; viewing all borrow records is admin-only.
-
-## 10. API Overview
-
-Base URL: `http://localhost:5000` (configurable via `PORT`). All routes below are prefixed with `/api`.
+Base URL: `http://localhost:5000` (configurable via `PORT`). All routes are prefixed with `/api`.
 
 ### Authentication (`/api/auth`) — rate-limited (20 requests / 15 min)
 
@@ -217,16 +227,18 @@ Base URL: `http://localhost:5000` (configurable via `PORT`). All routes below ar
 | GET | `/api/dashboard/admin` | Admin | System-wide stats + recent borrows/books/users |
 | GET | `/api/dashboard/user` | Authenticated | Current user's own stats + recent activity |
 
-## 11. Environment Variables
+<a id="environment-setup"></a>
+
+## ⚙️ Environment Setup
 
 ### Backend (`backend/.env`)
 
-Create a `.env` file inside `backend/` (already excluded from Git via `.gitignore`):
+Create a `.env` file inside `backend/` — **this file must remain private and must never be committed to Git** (it's already excluded via `.gitignore`):
 
 ```
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+MONGO_URI=<YOUR_MONGODB_URI>
+JWT_SECRET=<YOUR_JWT_SECRET>
 CLIENT_URL=http://localhost:5173
 ```
 
@@ -240,12 +252,12 @@ CLIENT_URL=http://localhost:5173
 The frontend defaults to `http://localhost:5000` for the API. To point it elsewhere, create a `.env` file in `front/`:
 
 ```
-VITE_API_URL=your_backend_api_url
+VITE_API_URL=<YOUR_BACKEND_API_URL>
 ```
 
-Never commit real credentials — only placeholder values belong in version control.
+> ⚠️ Never commit real credentials, connection strings, or secrets. Only placeholder values belong in version control.
 
-## 12. Installation & Running
+## ▶️ Installation & Running
 
 1. **Clone the repository**
    ```
@@ -266,7 +278,7 @@ Never commit real credentials — only placeholder values belong in version cont
    ```
 
 4. **Configure environment variables**
-   Create `backend/.env` as described in [Section 11](#11-environment-variables). Optionally create `front/.env` if the API isn't running on `http://localhost:5000`.
+   Create `backend/.env` as described in [Environment Setup](#environment-setup). Optionally create `front/.env` if the API isn't running on `http://localhost:5000`.
 
 5. **Start the backend**
    ```
@@ -286,7 +298,7 @@ Never commit real credentials — only placeholder values belong in version cont
 
 Optional: seed an initial admin account by running `node createAdmin.js` from inside `backend/` (requires `MONGO_URI` to be configured).
 
-## 13. Testing
+## ✅ Testing
 
 There is currently no automated test suite. Manual testing should cover:
 
@@ -297,7 +309,7 @@ There is currently no automated test suite. Manual testing should cover:
 - **User management** — role changes, deletion blocked with active borrows, admin unable to modify/delete their own account
 - **Authorization** — non-admin users blocked from admin routes/pages both in the UI and directly against the API
 
-## 14. Screenshots
+## 🖼️ Screenshots
 
 _Screenshots to be added._
 
@@ -310,7 +322,7 @@ _Screenshots to be added._
 - User Management
 - Borrowing Management
 
-## 15. Future Improvements
+## 🔭 Future Improvements
 
 The following are potential enhancements and are **not** currently implemented:
 
@@ -320,7 +332,3 @@ The following are potential enhancements and are **not** currently implemented:
 - Advanced reporting and analytics
 - Deployment configuration (Docker, CI/CD, hosting setup)
 - Automated testing (unit/integration/e2e)
-
-## 16. Author
-
-Maintained as a personal full-stack project showcasing a complete authentication, role-based authorization, and CRUD-driven application built with the MERN stack.
