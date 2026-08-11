@@ -1,8 +1,27 @@
 import { useEffect, useState } from "react";
+import {
+  FiSearch,
+  FiAlertTriangle,
+  FiUsers,
+  FiX,
+  FiShield,
+  FiTrash2,
+} from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
 import { API_BASE_URL } from "../config";
+
+const RoleBadge = ({ role }) =>
+  role === "admin" ? (
+    <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-600">
+      Admin
+    </span>
+  ) : (
+    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+      User
+    </span>
+  );
 
 const AdminUsers = () => {
   const { token, user: currentUser } = useAuth();
@@ -57,7 +76,9 @@ const AdminUsers = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // View user details + borrow history
@@ -183,14 +204,14 @@ const AdminUsers = () => {
   });
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+      <div>
+        <h1 className="text-lg font-bold tracking-tight text-slate-900 sm:text-2xl">
           User Management
         </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
           View registered users and manage their roles.
         </p>
       </div>
@@ -199,7 +220,7 @@ const AdminUsers = () => {
       {message && (
         <div
           role={messageType === "success" ? "status" : "alert"}
-          className={`mb-5 rounded-xl border px-4 py-3 text-sm ${
+          className={`rounded-lg border px-3.5 py-2 text-xs sm:text-sm ${
             messageType === "success"
               ? "border-emerald-100 bg-emerald-50 text-emerald-700"
               : "border-red-100 bg-red-50 text-red-600"
@@ -210,7 +231,7 @@ const AdminUsers = () => {
       )}
 
       {/* Search + Filter */}
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <label htmlFor="users-search" className="sr-only">
             Search users
@@ -218,9 +239,9 @@ const AdminUsers = () => {
 
           <span
             aria-hidden="true"
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
           >
-            🔍
+            <FiSearch size={15} />
           </span>
 
           <input
@@ -229,7 +250,7 @@ const AdminUsers = () => {
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs sm:text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
@@ -241,7 +262,7 @@ const AdminUsers = () => {
           id="users-role-filter"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:w-48"
+          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:w-40"
         >
           <option value="">All roles</option>
           <option value="admin">Admin</option>
@@ -254,7 +275,7 @@ const AdminUsers = () => {
               setSearch("");
               setRoleFilter("");
             }}
-            className="shrink-0 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs sm:text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             Clear
           </button>
@@ -263,18 +284,18 @@ const AdminUsers = () => {
 
       {/* Users */}
       {loadError ? (
-        <div role="alert" className="rounded-2xl border border-red-100 bg-red-50 p-12 text-center">
-          <div className="mb-3 text-4xl">⚠️</div>
+        <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
+          <FiAlertTriangle className="mx-auto text-red-500" size={26} aria-hidden="true" />
 
-          <h2 className="font-semibold text-red-700">
+          <h2 className="mt-2 text-xs font-semibold text-red-700 sm:text-sm">
             Failed to load users
           </h2>
 
-          <p className="mt-1 text-sm text-red-600">{loadError}</p>
+          <p className="mt-0.5 text-xs text-red-600">{loadError}</p>
 
           <button
             onClick={fetchUsers}
-            className="mt-4 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+            className="mt-3 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
           >
             Retry
           </button>
@@ -283,32 +304,31 @@ const AdminUsers = () => {
         <div
           aria-busy="true"
           aria-label="Loading users"
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
         >
           <div className="divide-y divide-slate-100">
             {[...Array(5)].map((_, index) => (
-              <div key={index} className="flex items-center gap-4 px-6 py-5">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-1/3" />
+              <div key={index} className="flex items-center gap-3 px-3.5 py-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-1/3" />
                   <Skeleton className="h-3 w-1/4" />
                 </div>
-                <Skeleton className="h-6 w-16" />
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-8 w-32" />
+                <Skeleton className="hidden h-5 w-14 sm:block" />
+                <Skeleton className="h-7 w-20" />
               </div>
             ))}
           </div>
         </div>
       ) : filteredUsers.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-          <div className="mb-3 text-5xl">👥</div>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
+          <FiUsers className="mx-auto text-slate-300" size={32} aria-hidden="true" />
 
-          <h2 className="font-semibold text-slate-900">
+          <h2 className="mt-2 text-xs font-semibold text-slate-900 sm:text-sm">
             {users.length === 0 ? "No users yet" : "No users found"}
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             {users.length === 0
               ? "Registered users will appear here."
               : "Try adjusting your search or role filter."}
@@ -320,141 +340,206 @@ const AdminUsers = () => {
                 setSearch("");
                 setRoleFilter("");
               }}
-              className="mt-4 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              className="mt-3 rounded-lg border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
             >
               Clear filters
             </button>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    User
-                  </th>
+        <>
+          {/* Mobile / tablet card list */}
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:hidden">
+            {filteredUsers.map((user) => {
+              const isSelf = user._id === currentUser?.id;
 
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Role
-                  </th>
+              return (
+                <div
+                  key={user._id}
+                  className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-indigo-200"
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
 
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Joined
-                  </th>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1 truncate text-xs font-bold text-slate-900 sm:text-sm">
+                          <span className="truncate">{user.name}</span>
+                          {isSelf && (
+                            <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                              You
+                            </span>
+                          )}
+                        </p>
+                        <p className="truncate text-[11px] text-slate-500">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
 
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Borrows
-                  </th>
+                    <RoleBadge role={user.role} />
+                  </div>
 
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                    <span>Joined {formatDate(user.createdAt)}</span>
+                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-600">
+                      {user.activeBorrows} active · {user.totalBorrows} total
+                    </span>
+                  </div>
 
-              <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => {
-                  const isSelf = user._id === currentUser?.id;
-
-                  return (
-                    <tr
-                      key={user._id}
-                      className="transition hover:bg-slate-50"
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => openView(user)}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
                     >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-semibold text-indigo-600">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
+                      View
+                    </button>
 
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-2 font-semibold text-slate-900">
-                              <span className="truncate">{user.name}</span>
+                    <button
+                      onClick={() => setRoleTarget(user)}
+                      disabled={isSelf}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {user.role === "admin" ? "Demote" : "Promote"}
+                    </button>
 
-                              {isSelf && (
-                                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                                  You
-                                </span>
-                              )}
-                            </p>
-
-                            <p className="truncate text-sm text-slate-500">
-                              {user.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-5">
-                        {user.role === "admin" ? (
-                          <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600">
-                            Admin
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                            User
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-5 text-sm text-slate-500">
-                        {formatDate(user.createdAt)}
-                      </td>
-
-                      <td className="px-6 py-5">
-                        <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
-                          {user.activeBorrows} active · {user.totalBorrows}{" "}
-                          total
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-5">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => openView(user)}
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                          >
-                            View
-                          </button>
-
-                          <button
-                            onClick={() => setRoleTarget(user)}
-                            disabled={isSelf}
-                            title={
-                              isSelf
-                                ? "You cannot change your own role"
-                                : undefined
-                            }
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {user.role === "admin"
-                              ? "Demote"
-                              : "Promote"}
-                          </button>
-
-                          <button
-                            onClick={() => setDeleteTarget(user)}
-                            disabled={isSelf}
-                            title={
-                              isSelf
-                                ? "You cannot delete your own account"
-                                : undefined
-                            }
-                            className="rounded-lg border border-red-100 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    <button
+                      onClick={() => setDeleteTarget(user)}
+                      disabled={isSelf}
+                      className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      User
+                    </th>
+
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Role
+                    </th>
+
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Joined
+                    </th>
+
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Borrows
+                    </th>
+
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.map((user) => {
+                    const isSelf = user._id === currentUser?.id;
+
+                    return (
+                      <tr
+                        key={user._id}
+                        className="transition hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                <span className="truncate">{user.name}</span>
+
+                                {isSelf && (
+                                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                    You
+                                  </span>
+                                )}
+                              </p>
+
+                              <p className="truncate text-xs text-slate-500">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <RoleBadge role={user.role} />
+                        </td>
+
+                        <td className="px-4 py-3.5 text-sm text-slate-500">
+                          {formatDate(user.createdAt)}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600">
+                            {user.activeBorrows} active · {user.totalBorrows}{" "}
+                            total
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              onClick={() => openView(user)}
+                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                            >
+                              View
+                            </button>
+
+                            <button
+                              onClick={() => setRoleTarget(user)}
+                              disabled={isSelf}
+                              title={
+                                isSelf
+                                  ? "You cannot change your own role"
+                                  : undefined
+                              }
+                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {user.role === "admin"
+                                ? "Demote"
+                                : "Promote"}
+                            </button>
+
+                            <button
+                              onClick={() => setDeleteTarget(user)}
+                              disabled={isSelf}
+                              title={
+                                isSelf
+                                  ? "You cannot delete your own account"
+                                  : undefined
+                              }
+                              className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* View User */}
@@ -464,23 +549,23 @@ const AdminUsers = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="view-user-title"
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-2xl"
           >
-            <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="mb-4 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-semibold text-indigo-600">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-base font-semibold text-indigo-600">
                   {viewUser.name.charAt(0).toUpperCase()}
                 </div>
 
                 <div>
                   <h2
                     id="view-user-title"
-                    className="text-xl font-bold text-slate-900"
+                    className="text-lg font-bold text-slate-900"
                   >
                     {viewUser.name}
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-0.5 text-sm text-slate-500">
                     {viewUser.email}
                   </p>
                 </div>
@@ -489,47 +574,39 @@ const AdminUsers = () => {
               <button
                 onClick={() => setViewUser(null)}
                 aria-label="Close"
-                className="rounded-lg px-3 py-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
-                <span aria-hidden="true">✕</span>
+                <FiX size={18} aria-hidden="true" />
               </button>
             </div>
 
-            {viewUser.role === "admin" ? (
-              <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600">
-                Admin
-              </span>
-            ) : (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                User
-              </span>
-            )}
+            <RoleBadge role={viewUser.role} />
 
-            <div className="mt-5 grid grid-cols-2 gap-4">
-              <div className="rounded-xl bg-slate-50 p-4">
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Joined</p>
 
-                <p className="mt-1 text-sm font-medium text-slate-900">
+                <p className="mt-0.5 text-sm font-medium text-slate-900">
                   {formatDate(viewUser.createdAt)}
                 </p>
               </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
+              <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">Borrows</p>
 
-                <p className="mt-1 text-sm font-medium text-slate-900">
+                <p className="mt-0.5 text-sm font-medium text-slate-900">
                   {viewUser.activeBorrows} active · {viewUser.totalBorrows}{" "}
                   total
                 </p>
               </div>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Borrow History
               </p>
 
-              <div className="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+              <div className="max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100">
                 {viewLoading ? (
                   <div className="space-y-3 p-4">
                     <Skeleton className="h-10 w-full" />
@@ -548,24 +625,24 @@ const AdminUsers = () => {
                   viewDetail.borrows.map((borrow) => (
                     <div
                       key={borrow._id}
-                      className="flex items-center justify-between gap-4 p-4"
+                      className="flex items-center justify-between gap-4 p-3"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-900">
                           {borrow.book?.title || "Unknown book"}
                         </p>
 
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-0.5 text-xs text-slate-500">
                           {formatDate(borrow.borrowDate)}
                         </p>
                       </div>
 
                       {borrow.status === "borrowed" ? (
-                        <span className="shrink-0 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
+                        <span className="shrink-0 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-600">
                           Borrowed
                         </span>
                       ) : (
-                        <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
                           Returned
                         </span>
                       )}
@@ -575,10 +652,10 @@ const AdminUsers = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-5 flex justify-end">
               <button
                 onClick={() => setViewUser(null)}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Close
               </button>
@@ -594,22 +671,22 @@ const AdminUsers = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="role-change-title"
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl"
           >
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-xl">
-              🛡️
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <FiShield size={18} aria-hidden="true" />
             </div>
 
             <h2
               id="role-change-title"
-              className="text-xl font-bold text-slate-900"
+              className="text-lg font-bold text-slate-900"
             >
               {roleTarget.role === "admin"
                 ? "Demote to User?"
                 : "Promote to Admin?"}
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-1.5 text-sm leading-6 text-slate-500">
               {roleTarget.role === "admin" ? (
                 <>
                   <strong>{roleTarget.name}</strong> will lose admin
@@ -624,18 +701,18 @@ const AdminUsers = () => {
             </p>
 
             {roleError && (
-              <div role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" className="mt-3.5 rounded-lg border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-600">
                 {roleError}
               </div>
             )}
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 onClick={() => {
                   setRoleTarget(null);
                   setRoleError("");
                 }}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -643,7 +720,7 @@ const AdminUsers = () => {
               <button
                 onClick={handleConfirmRoleChange}
                 disabled={changingRole}
-                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {changingRole
                   ? "Updating..."
@@ -663,38 +740,38 @@ const AdminUsers = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-user-title"
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl"
           >
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-xl">
-              🗑️
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600">
+              <FiTrash2 size={18} aria-hidden="true" />
             </div>
 
             <h2
               id="delete-user-title"
-              className="text-xl font-bold text-slate-900"
+              className="text-lg font-bold text-slate-900"
             >
               Delete this user?
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-1.5 text-sm leading-6 text-slate-500">
               Are you sure you want to delete{" "}
               <strong>{deleteTarget.name}</strong> ({deleteTarget.email})?
               This action cannot be undone.
             </p>
 
             {deleteError && (
-              <div role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" className="mt-3.5 rounded-lg border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-600">
                 {deleteError}
               </div>
             )}
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 onClick={() => {
                   setDeleteTarget(null);
                   setDeleteError("");
                 }}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -702,7 +779,7 @@ const AdminUsers = () => {
               <button
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deleting ? "Deleting..." : "Delete User"}
               </button>

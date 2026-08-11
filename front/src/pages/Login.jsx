@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FiBook, FiBookOpen, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config";
 
@@ -70,15 +71,15 @@ const Login = () => {
     <div className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-2">
 
       {/* Left branding section */}
-      <div className="hidden bg-indigo-600 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="hidden bg-indigo-600 p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-2xl">
-              📚
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+              <FiBook size={20} aria-hidden="true" />
             </div>
 
             <div>
-              <h1 className="text-xl font-bold">LibraryHub</h1>
+              <h1 className="text-lg font-bold">LibraryHub</h1>
               <p className="text-xs text-indigo-200">
                 Management System
               </p>
@@ -87,15 +88,17 @@ const Login = () => {
         </div>
 
         <div className="max-w-lg">
-          <div className="mb-6 text-6xl">📖</div>
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+            <FiBookOpen size={28} aria-hidden="true" />
+          </div>
 
-          <h2 className="text-4xl font-bold leading-tight">
+          <h2 className="text-3xl font-bold leading-tight">
             Manage your library,
             <br />
             effortlessly.
           </h2>
 
-          <p className="mt-5 text-lg leading-8 text-indigo-100">
+          <p className="mt-4 text-base leading-7 text-indigo-100">
             Keep track of books, borrowing activity and your
             entire library collection from one simple dashboard.
           </p>
@@ -107,32 +110,32 @@ const Login = () => {
       </div>
 
       {/* Login section */}
-      <div className="flex items-center justify-center px-5 py-10 sm:px-8">
+      <div className="flex items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
         <div className="w-full max-w-md">
 
           {/* Mobile logo */}
-          <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-xl text-white">
-              📚
+          <div className="mb-5 flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <FiBook size={18} aria-hidden="true" />
             </div>
 
             <div>
-              <h1 className="font-bold text-slate-900">
+              <h1 className="text-xs font-bold text-slate-900 sm:text-sm">
                 LibraryHub
               </h1>
 
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] text-slate-400">
                 Management System
               </p>
             </div>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               Welcome back 👋
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">
               Sign in to access your library dashboard.
             </p>
           </div>
@@ -141,19 +144,19 @@ const Login = () => {
           {error && (
             <div
               role="alert"
-              className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600"
+              className="mb-4 rounded-lg border border-red-100 bg-red-50 px-3.5 py-2 text-xs sm:text-sm text-red-600"
             >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
 
             {/* Email */}
             <div>
               <label
                 htmlFor="login-email"
-                className="mb-2 block text-sm font-medium text-slate-700"
+                className="mb-1 block text-xs font-medium text-slate-700 sm:text-sm"
               >
                 Email address
               </label>
@@ -166,16 +169,16 @@ const Login = () => {
                 onChange={handleChange}
                 placeholder="you@example.com"
                 autoComplete="email"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               />
             </div>
 
             {/* Password */}
             <div>
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between">
                 <label
                   htmlFor="login-password"
-                  className="text-sm font-medium text-slate-700"
+                  className="text-xs font-medium text-slate-700 sm:text-sm"
                 >
                   Password
                 </label>
@@ -190,7 +193,7 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-10 text-xs sm:text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
 
                 <button
@@ -201,9 +204,9 @@ const Login = () => {
                   aria-label={
                     showPassword ? "Hide password" : "Show password"
                   }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? <FiEyeOff size={15} aria-hidden="true" /> : <FiEye size={15} aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -212,14 +215,14 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
           {/* Register */}
-          <p className="mt-8 text-center text-sm text-slate-500">
+          <p className="mt-5 text-center text-xs sm:text-sm text-slate-500">
             Don't have an account?{" "}
             <Link
               to="/register"

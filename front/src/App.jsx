@@ -5,7 +5,6 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Books from "./pages/Books";
 import MyBorrows from "./pages/MyBorrows";
-import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminBorrows from "./pages/AdminBorrows";
 
@@ -43,15 +42,6 @@ const App = () => {
           <Route
             path="/my-borrows"
             element={<MyBorrows />}
-          />
-
-          <Route
-            path="/admin/dashboard"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
           />
 
           <Route
