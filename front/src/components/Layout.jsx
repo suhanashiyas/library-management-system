@@ -7,6 +7,7 @@ import {
   FiUsers,
   FiClipboard,
   FiLogOut,
+  FiSettings,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 
@@ -21,6 +22,7 @@ const Layout = () => {
         { name: "Books", shortName: "Books", path: "/books", icon: FiBook },
         { name: "Users", shortName: "Users", path: "/admin/users", icon: FiUsers },
         { name: "Borrowings", shortName: "Borrows", path: "/admin/borrows", icon: FiClipboard },
+        { name: "Settings", shortName: "Settings", path: "/admin/settings", icon: FiSettings },
       ]
     : [
         { name: "Dashboard", shortName: "Dashboard", path: "/dashboard", icon: FiGrid },

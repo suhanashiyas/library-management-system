@@ -1,8 +1,16 @@
 const mongoose = require("mongoose");
 const Book = require("../models/book");
 const Borrow = require("../models/borrow");
+const Category = require("../models/category");
+const { uploadImage, deleteImage } = require("../services/spacesService");
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Categories must come from the managed list, not arbitrary client text
+const findCategoryByName = (name) =>
+  Category.findOne({ name: new RegExp(`^${escapeRegex(name.trim())}$`, "i") });
 
 // CREATE BOOK
 const createBook = async (req, res) => {
@@ -34,6 +42,14 @@ const createBook = async (req, res) => {
       });
     }
 
+    const matchedCategory = await findCategoryByName(category);
+
+    if (!matchedCategory) {
+      return res.status(400).json({
+        message: "Please select a valid category.",
+      });
+    }
+
     const existingBook = await Book.findOne({ isbn: isbn.trim() });
 
     if (existingBook) {
@@ -42,13 +58,37 @@ const createBook = async (req, res) => {
       });
     }
 
+    let coverImage = "";
+    let coverImageKey = "";
+
+    if (req.file) {
+      try {
+        const uploaded = await uploadImage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+
+        coverImage = uploaded.url;
+        coverImageKey = uploaded.key;
+      } catch (uploadError) {
+        console.error(uploadError);
+
+        return res.status(500).json({
+          message: "Failed to upload cover image. Please try again.",
+        });
+      }
+    }
+
     const book = await Book.create({
       title: title.trim(),
       author: author.trim(),
       isbn: isbn.trim(),
-      category: category.trim(),
+      category: matchedCategory.name,
       quantity: parsedQuantity,
       availableQuantity: parsedQuantity,
+      coverImage,
+      coverImageKey,
     });
 
     res.status(201).json({
@@ -140,7 +180,16 @@ const updateBook = async (req, res) => {
       if (!category.trim()) {
         return res.status(400).json({ message: "Category cannot be empty." });
       }
-      book.category = category.trim();
+
+      const matchedCategory = await findCategoryByName(category);
+
+      if (!matchedCategory) {
+        return res.status(400).json({
+          message: "Please select a valid category.",
+        });
+      }
+
+      book.category = matchedCategory.name;
     }
 
     if (isbn !== undefined) {
@@ -189,7 +238,34 @@ const updateBook = async (req, res) => {
       book.availableQuantity = parsedQuantity - currentlyBorrowed;
     }
 
+    let previousCoverImageKey = "";
+
+    if (req.file) {
+      try {
+        const uploaded = await uploadImage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+
+        previousCoverImageKey = book.coverImageKey;
+        book.coverImage = uploaded.url;
+        book.coverImageKey = uploaded.key;
+      } catch (uploadError) {
+        console.error(uploadError);
+
+        return res.status(500).json({
+          message: "Failed to upload cover image. Please try again.",
+        });
+      }
+    }
+
     await book.save();
+
+    // Only remove the old image once the new one is safely saved
+    if (previousCoverImageKey) {
+      deleteImage(previousCoverImageKey);
+    }
 
     res.status(200).json({
       message: "Book updated successfully",
@@ -230,6 +306,10 @@ const deleteBook = async (req, res) => {
     }
 
     await Book.findByIdAndDelete(req.params.id);
+
+    if (book.coverImageKey) {
+      deleteImage(book.coverImageKey);
+    }
 
     res.status(200).json({
       message: "Book deleted successfully",

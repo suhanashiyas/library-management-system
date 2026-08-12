@@ -6,11 +6,19 @@ import {
   FiPlus,
   FiX,
   FiTrash2,
+  FiImage,
+  FiMinus,
+  FiUploadCloud,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
+import * as bookService from "../services/bookService";
+import { getCategories } from "../services/categoryService";
 import { API_BASE_URL } from "../config";
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB, mirrors backend limit
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const AvailabilityBadge = ({ book }) =>
   book.availableQuantity > 0 ? (
@@ -23,9 +31,27 @@ const AvailabilityBadge = ({ book }) =>
     </span>
   );
 
+// Small reusable cover thumbnail — shows the book cover, or a placeholder
+// icon (react-icons, never a hardcoded image) when none is set.
+const BookCover = ({ src, alt, className = "" }) =>
+  src ? (
+    <img
+      src={src}
+      alt={alt}
+      className={`shrink-0 rounded-lg object-cover ${className}`}
+    />
+  ) : (
+    <div
+      className={`flex shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-300 ${className}`}
+    >
+      <FiImage size={18} aria-hidden="true" />
+    </div>
+  );
+
 const Books = () => {
   const { isAdmin } = useAuth();
   const [books, setBooks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [message, setMessage] = useState("");
@@ -50,8 +76,20 @@ const Books = () => {
     category: "",
     quantity: "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
-  const getToken = () => localStorage.getItem("token");
+  const resetForm = () => {
+    setForm({
+      title: "",
+      author: "",
+      isbn: "",
+      category: "",
+      quantity: "",
+    });
+    setImageFile(null);
+    setImagePreview("");
+  };
 
   // Fetch books
   const fetchBooks = async () => {
@@ -59,32 +97,30 @@ const Books = () => {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch(`${API_BASE_URL}/api/books`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setLoadError(data.message || "Failed to fetch books");
-        return;
-      }
-
-      setBooks(data.books || []);
+      const fetchedBooks = await bookService.getBooks();
+      setBooks(fetchedBooks);
     } catch (error) {
       console.error(error);
-      setLoadError("Unable to connect to server");
+      setLoadError(error.message || "Unable to connect to server");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch the admin-managed category list (drives the dropdowns below)
+  const fetchCategories = async () => {
+    try {
+      const fetchedCategories = await getCategories();
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error(error);
     }
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchCategories();
   }, []);
 
   // Form change
@@ -93,6 +129,37 @@ const Books = () => {
       ...form,
       [e.target.name]: e.target.value,
     });
+  };
+
+  // Nudge quantity up/down without breaking manual typing
+  const adjustQuantity = (delta) => {
+    const current = Number(form.quantity) || 0;
+    const next = Math.max(1, current + delta);
+
+    setForm({ ...form, quantity: String(next) });
+  };
+
+  // Cover image selection + client-side validation (backend re-validates too)
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setFormError("Cover image must be a JPEG, PNG or WEBP file.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setFormError("Cover image must be 5MB or smaller.");
+      e.target.value = "";
+      return;
+    }
+
+    setFormError("");
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   // Validate the add/edit form before sending it to the server
@@ -134,41 +201,23 @@ const Books = () => {
       setSaving(true);
       setFormError("");
 
-      const response = await fetch(`${API_BASE_URL}/api/books`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({
+      await bookService.createBook(
+        {
           ...form,
           quantity: Number(form.quantity),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setFormError(data.message || "Failed to add book");
-        return;
-      }
+        },
+        imageFile
+      );
 
       setMessage("Book added successfully!");
       setMessageType("success");
       setShowAddModal(false);
-
-      setForm({
-        title: "",
-        author: "",
-        isbn: "",
-        category: "",
-        quantity: "",
-      });
+      resetForm();
 
       fetchBooks();
     } catch (error) {
       console.error(error);
-      setFormError("Unable to connect to server");
+      setFormError(error.message || "Unable to connect to server");
     } finally {
       setSaving(false);
     }
@@ -186,6 +235,8 @@ const Books = () => {
       category: book.category,
       quantity: book.quantity,
     });
+    setImageFile(null);
+    setImagePreview(book.coverImage || "");
   };
 
   // Update book
@@ -203,44 +254,24 @@ const Books = () => {
       setSaving(true);
       setFormError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/books/${editingBook._id}`,
+      await bookService.updateBook(
+        editingBook._id,
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify({
-            ...form,
-            quantity: Number(form.quantity),
-          }),
-        }
+          ...form,
+          quantity: Number(form.quantity),
+        },
+        imageFile
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setFormError(data.message || "Failed to update book");
-        return;
-      }
 
       setMessage("Book updated successfully!");
       setMessageType("success");
       setEditingBook(null);
-
-      setForm({
-        title: "",
-        author: "",
-        isbn: "",
-        category: "",
-        quantity: "",
-      });
+      resetForm();
 
       fetchBooks();
     } catch (error) {
       console.error(error);
-      setFormError("Unable to connect to server");
+      setFormError(error.message || "Unable to connect to server");
     } finally {
       setSaving(false);
     }
@@ -252,22 +283,7 @@ const Books = () => {
       setDeleting(true);
       setDeleteError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/books/${deleteBook._id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setDeleteError(data.message || "Failed to delete book");
-        return;
-      }
+      await bookService.deleteBook(deleteBook._id);
 
       setMessage("Book deleted successfully!");
       setMessageType("success");
@@ -276,7 +292,7 @@ const Books = () => {
       fetchBooks();
     } catch (error) {
       console.error(error);
-      setDeleteError("Unable to connect to server");
+      setDeleteError(error.message || "Unable to connect to server");
     } finally {
       setDeleting(false);
     }
@@ -292,7 +308,7 @@ const Books = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           bookId,
@@ -320,9 +336,6 @@ const Books = () => {
       setBorrowingId(null);
     }
   };
-
-  // Available categories, derived from the full book list (not the filtered one)
-  const categories = [...new Set(books.map((book) => book.category))].sort();
 
   // Search + category filter
   const filteredBooks = books.filter((book) => {
@@ -416,8 +429,8 @@ const Books = () => {
           <option value="">All categories</option>
 
           {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
+            <option key={category._id} value={category.name}>
+              {category.name}
             </option>
           ))}
         </select>
@@ -510,13 +523,21 @@ const Books = () => {
                 className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-indigo-200"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-slate-900 sm:text-sm">
-                      {book.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                      {book.author}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <BookCover
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="h-12 w-9 text-base"
+                    />
+
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-slate-900 sm:text-sm">
+                        {book.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                        {book.author}
+                      </p>
+                    </div>
                   </div>
 
                   <AvailabilityBadge book={book} />
@@ -610,14 +631,22 @@ const Books = () => {
                       className="transition hover:bg-slate-50"
                     >
                       <td className="px-4 py-3.5">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
-                            {book.title}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <BookCover
+                            src={book.coverImage}
+                            alt={book.title}
+                            className="h-11 w-8 text-sm"
+                          />
 
-                          <p className="mt-0.5 text-xs text-slate-500">
-                            {book.author}
-                          </p>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {book.title}
+                            </p>
+
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {book.author}
+                            </p>
+                          </div>
                         </div>
                       </td>
 
@@ -718,6 +747,7 @@ const Books = () => {
                   setShowAddModal(false);
                   setEditingBook(null);
                   setFormError("");
+                  resetForm();
                 }}
                 aria-label="Close"
                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
@@ -804,15 +834,32 @@ const Books = () => {
                   Category
                 </label>
 
-                <input
+                <select
                   id="book-category"
                   name="category"
                   value={form.category}
                   onChange={handleChange}
-                  placeholder="Category"
                   required
                   className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
+                >
+                  <option value="" disabled>
+                    {categories.length === 0
+                      ? "No categories available"
+                      : "Select a category"}
+                  </option>
+
+                  {categories.map((category) => (
+                    <option key={category._id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+
+                {isAdmin && categories.length === 0 && (
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    No categories yet — add one from Settings first.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -823,18 +870,76 @@ const Books = () => {
                   Quantity
                 </label>
 
-                <input
-                  id="book-quantity"
-                  name="quantity"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={form.quantity}
-                  onChange={handleChange}
-                  placeholder="Quantity"
-                  required
-                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
+                <div className="flex items-stretch gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => adjustQuantity(-1)}
+                    aria-label="Decrease quantity"
+                    className="flex w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                  >
+                    <FiMinus size={14} aria-hidden="true" />
+                  </button>
+
+                  <input
+                    id="book-quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.quantity}
+                    onChange={handleChange}
+                    placeholder="Quantity"
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-center text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => adjustQuantity(1)}
+                    aria-label="Increase quantity"
+                    className="flex w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                  >
+                    <FiPlus size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="book-cover-image"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  Cover Image
+                </label>
+
+                <div className="flex items-center gap-3">
+                  <BookCover
+                    src={imagePreview}
+                    alt="Cover preview"
+                    className="h-16 w-12 text-lg"
+                  />
+
+                  <label
+                    htmlFor="book-cover-image"
+                    className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2.5 text-xs font-medium text-slate-500 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 sm:text-sm"
+                  >
+                    <FiUploadCloud size={15} aria-hidden="true" />
+                    {imageFile ? imageFile.name : "Upload image"}
+                  </label>
+
+                  <input
+                    id="book-cover-image"
+                    name="coverImage"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    className="sr-only"
+                  />
+                </div>
+
+                <p className="mt-1.5 text-xs text-slate-500">
+                  JPEG, PNG or WEBP, up to 5MB. Optional.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2.5 pt-2">
@@ -844,6 +949,7 @@ const Books = () => {
                     setShowAddModal(false);
                     setEditingBook(null);
                     setFormError("");
+                    resetForm();
                   }}
                   className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
@@ -934,17 +1040,25 @@ const Books = () => {
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-2xl"
           >
             <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h2
-                  id="view-book-title"
-                  className="text-lg font-bold text-slate-900"
-                >
-                  {viewBook.title}
-                </h2>
+              <div className="flex items-start gap-3">
+                <BookCover
+                  src={viewBook.coverImage}
+                  alt={viewBook.title}
+                  className="h-20 w-14 text-2xl"
+                />
 
-                <p className="mt-0.5 text-sm text-slate-500">
-                  {viewBook.author}
-                </p>
+                <div>
+                  <h2
+                    id="view-book-title"
+                    className="text-lg font-bold text-slate-900"
+                  >
+                    {viewBook.title}
+                  </h2>
+
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {viewBook.author}
+                  </p>
+                </div>
               </div>
 
               <button

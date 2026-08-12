@@ -7,6 +7,7 @@ import Books from "./pages/Books";
 import MyBorrows from "./pages/MyBorrows";
 import AdminUsers from "./pages/AdminUsers";
 import AdminBorrows from "./pages/AdminBorrows";
+import AdminSettings from "./pages/AdminSettings";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -58,6 +59,15 @@ const App = () => {
             element={
               <AdminRoute>
                 <AdminBorrows />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/settings"
+            element={
+              <AdminRoute>
+                <AdminSettings />
               </AdminRoute>
             }
           />

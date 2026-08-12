@@ -30,6 +30,7 @@ const authLimiter = rateLimit({
 const authroutes = require("./routes/authroutes");
 const bookRoutes = require("./routes/bookRoutes");
 const borrowRoutes = require("./routes/borrowRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const userRoutes = require("./routes/userRoutes");
 
@@ -42,6 +43,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authLimiter, authroutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/borrows", borrowRoutes);
+app.use("/api/categories", categoryRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", userRoutes);
 

@@ -12,6 +12,7 @@ const {
 
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
+const uploadCoverImage = require("../middleware/uploadMiddleware");
 
 // Anyone logged in can view books
 router.get("/", authMiddleware, getBooks);
@@ -23,6 +24,7 @@ router.post(
   "/",
   authMiddleware,
   adminMiddleware,
+  uploadCoverImage,
   createBook
 );
 
@@ -31,6 +33,7 @@ router.put(
   "/:id",
   authMiddleware,
   adminMiddleware,
+  uploadCoverImage,
   updateBook
 );
 

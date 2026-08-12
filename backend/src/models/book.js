@@ -59,6 +59,14 @@ const bookSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Spaces object key for the current coverImage, so it can be deleted
+    // from DigitalOcean Spaces when the cover is replaced or the book removed.
+    coverImageKey: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     quantity: {
       type: Number,
       required: true,
