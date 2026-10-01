@@ -1,3 +1,12 @@
-// Single source of truth for the backend API origin. Override by setting
-// VITE_API_URL in a .env file when deploying somewhere other than localhost.
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// Single source of truth for the backend API origin. Set VITE_API_URL in
+// front/.env (see .env.example); there is intentionally no hardcoded fallback.
+const rawBaseUrl = import.meta.env.VITE_API_URL;
+
+if (!rawBaseUrl) {
+  throw new Error(
+    "VITE_API_URL is not set. Copy .env.example to .env and set the backend URL."
+  );
+}
+
+// Strip trailing slashes so callers can always append "/api/..."
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");

@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiAlertTriangle, FiBook, FiBookOpen } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
-import { API_BASE_URL } from "../config";
+import { getMyBorrows, returnBook } from "../services/borrowService";
 
 const MyBorrows = () => {
-  const { token } = useAuth();
-
   const [borrows, setBorrows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -24,26 +21,10 @@ const MyBorrows = () => {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/borrows/my`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setLoadError(data.message || "Failed to load borrowings");
-        return;
-      }
-
-      setBorrows(data.borrows || []);
+      setBorrows(await getMyBorrows());
     } catch (error) {
       console.error(error);
-      setLoadError("Unable to connect to server");
+      setLoadError(error.message);
     } finally {
       setLoading(false);
     }
@@ -52,7 +33,6 @@ const MyBorrows = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBorrows();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleConfirmReturn = async () => {
@@ -60,26 +40,7 @@ const MyBorrows = () => {
       setReturning(true);
       setReturnError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/borrows/return`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            borrowId: returnTarget._id,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setReturnError(data.message || "Failed to return book");
-        return;
-      }
+      await returnBook(returnTarget._id);
 
       setMessage("Book returned successfully!");
       setMessageType("success");
@@ -88,7 +49,7 @@ const MyBorrows = () => {
       fetchBorrows();
     } catch (error) {
       console.error(error);
-      setReturnError("Unable to connect to server");
+      setReturnError(error.message);
     } finally {
       setReturning(false);
     }

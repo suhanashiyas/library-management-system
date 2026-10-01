@@ -13,10 +13,10 @@ import {
 import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
-import { API_BASE_URL } from "../config";
+import { getDashboard } from "../services/dashboardService";
 
 const Dashboard = () => {
-  const { token, user, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [stats, setStats] = useState(null);
   const [recentBorrows, setRecentBorrows] = useState([]);
@@ -30,21 +30,7 @@ const Dashboard = () => {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/dashboard/${isAdmin ? "admin" : "user"}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Failed to load dashboard statistics");
-        return;
-      }
+      const data = await getDashboard(isAdmin);
 
       setStats(data.stats);
       setRecentBorrows((isAdmin ? data.recentBorrows : data.recentActivity) || []);
@@ -52,7 +38,7 @@ const Dashboard = () => {
       setRecentUsers(data.recentUsers || []);
     } catch (err) {
       console.error(err);
-      setError("Unable to connect to server");
+      setError(error.message);
     } finally {
       setLoading(false);
     }

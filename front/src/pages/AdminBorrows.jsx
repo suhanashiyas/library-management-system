@@ -7,10 +7,9 @@ import {
   FiCheck,
   FiUsers,
 } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
-import { API_BASE_URL } from "../config";
+import { getAllBorrows } from "../services/borrowService";
 
 const StatusBadge = ({ status }) =>
   status === "borrowed" ? (
@@ -24,7 +23,6 @@ const StatusBadge = ({ status }) =>
   );
 
 const AdminBorrows = () => {
-  const { token } = useAuth();
 
   const [borrows, setBorrows] = useState([]);
   const [search, setSearch] = useState("");
@@ -37,26 +35,10 @@ const AdminBorrows = () => {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/borrows/admin`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setLoadError(data.message || "Failed to fetch borrow records");
-        return;
-      }
-
-      setBorrows(data.borrows || []);
+      setBorrows(await getAllBorrows());
     } catch (error) {
       console.error(error);
-      setLoadError("Unable to connect to server");
+      setLoadError(error.message);
     } finally {
       setLoading(false);
     }
@@ -65,7 +47,6 @@ const AdminBorrows = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBorrows();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Statistics, derived from the already-fetched list

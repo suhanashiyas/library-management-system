@@ -15,7 +15,7 @@ import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
 import * as bookService from "../services/bookService";
 import { getCategories } from "../services/categoryService";
-import { API_BASE_URL } from "../config";
+import { borrowBook } from "../services/borrowService";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB, mirrors backend limit
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -304,24 +304,7 @@ const Books = () => {
       setBorrowingId(bookId);
       setMessage("");
 
-      const response = await fetch(`${API_BASE_URL}/api/borrows`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          bookId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message || "Failed to borrow book");
-        setMessageType("error");
-        return;
-      }
+      await borrowBook(bookId);
 
       setMessage("Book borrowed successfully!");
       setMessageType("success");
@@ -330,7 +313,7 @@ const Books = () => {
       fetchBooks();
     } catch (error) {
       console.error(error);
-      setMessage("Unable to connect to server");
+      setMessage(error.message);
       setMessageType("error");
     } finally {
       setBorrowingId(null);
