@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiBook, FiBookOpen, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE_URL } from "../config";
+import { loginUser } from "../services/authService";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,30 +38,14 @@ const Login = () => {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Invalid email or password.");
-        return;
-      }
+      const data = await loginUser(form);
 
       login(data.user, data.token);
 
       navigate("/dashboard");
     } catch (error) {
       console.error(error);
-      setError("Unable to connect to server.");
+      setError(error.message);
     } finally {
       setLoading(false);
     }

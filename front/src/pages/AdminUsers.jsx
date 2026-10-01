@@ -10,7 +10,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import Skeleton from "../components/Skeleton";
 import { formatDate } from "../utils/formatDate";
-import { API_BASE_URL } from "../config";
+import { getUsers, getUserDetail, updateUserRole, deleteUser } from "../services/userService";
 
 const RoleBadge = ({ role }) =>
   role === "admin" ? (
@@ -24,7 +24,7 @@ const RoleBadge = ({ role }) =>
   );
 
 const AdminUsers = () => {
-  const { token, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -53,23 +53,10 @@ const AdminUsers = () => {
       setLoading(true);
       setLoadError("");
 
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setLoadError(data.message || "Failed to fetch users");
-        return;
-      }
-
-      setUsers(data.users || []);
+      setUsers(await getUsers());
     } catch (error) {
       console.error(error);
-      setLoadError("Unable to connect to server");
+      setLoadError(error.message);
     } finally {
       setLoading(false);
     }
@@ -78,7 +65,6 @@ const AdminUsers = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // View user details + borrow history
@@ -89,26 +75,10 @@ const AdminUsers = () => {
     setViewLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/${user._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setViewError(data.message || "Failed to load user details");
-        return;
-      }
-
-      setViewDetail(data);
+      setViewDetail(await getUserDetail(user._id));
     } catch (error) {
       console.error(error);
-      setViewError("Unable to connect to server");
+      setViewError(error.message);
     } finally {
       setViewLoading(false);
     }
@@ -122,24 +92,7 @@ const AdminUsers = () => {
       setChangingRole(true);
       setRoleError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/${roleTarget._id}/role`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: nextRole }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setRoleError(data.message || "Failed to update role");
-        return;
-      }
+      await updateUserRole(roleTarget._id, nextRole);
 
       setMessage(`${roleTarget.name}'s role was changed to ${nextRole}.`);
       setMessageType("success");
@@ -148,7 +101,7 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error) {
       console.error(error);
-      setRoleError("Unable to connect to server");
+      setRoleError(error.message);
     } finally {
       setChangingRole(false);
     }
@@ -160,22 +113,7 @@ const AdminUsers = () => {
       setDeleting(true);
       setDeleteError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/${deleteTarget._id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setDeleteError(data.message || "Failed to delete user");
-        return;
-      }
+      await deleteUser(deleteTarget._id);
 
       setMessage("User deleted successfully!");
       setMessageType("success");
@@ -184,7 +122,7 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error) {
       console.error(error);
-      setDeleteError("Unable to connect to server");
+      setDeleteError(error.message);
     } finally {
       setDeleting(false);
     }
