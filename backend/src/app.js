@@ -5,6 +5,9 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+// Behind a proxy (Vercel) — needed so rate limiting sees the real client IP
+app.set("trust proxy", 1);
+
 // Security headers
 app.use(helmet());
 
